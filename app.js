@@ -69,84 +69,138 @@ app.post('/api/message', function(req, res) {
  * @param  {Object} response The response from the Conversation service
  * @return {Object}          The response with the updated message
  */
-function updateMessage(input, response) {
-console.log("Test");
-  var responseText = null;
-  if (!response.output) {
-    response.output = {};
-  } else {
 
-if (response.entities.length > 0){
-console.log("test-moi");
-	console.log(response.entities[0].entity);
+var toto;
+function getVar(Uni_Var){
+console.log(typeof Uni_Var + Uni_Var);
+toto = Uni_Var;
+return Uni_Var;
+
+}
+//**********************************************************
+//*              Fonction getIncident
+//**********************************************************
+function getIncident(Numero, callback, urgency_var_Json, short_desc_http){
+   var request = require("request");
+   var options = { method: 'POST', url: 'https://dev37615.service-now.com/api/now/table/incident',headers: { 'postman-token': '1688794f-1233-8b00-60fc-be57f33dbd20','cache-control': 'no-cache', authorization: 'Basic YWRtaW46Z1VHcFdwS3pQcEV5','content-type': 'application/json', accept: 'application/json' }, body:{ short_description: short_desc_http, urgency: urgency_var_Json },
+  json: true };
+
+  request(options, Numero, function (error, response, body, Numero) {
+   try {
+	var json=JSON.parse(body);
+	Numero = json.result.number;
+        console.log(Numero);
+	callback(null, "here is the number :" + Numero);
+       } catch (e) {
+	console.log(JSON.stringify(response));
+	console.log(typeof response);
+	//var json = JSON.parse(response);
+	response = response.body.result.number;
+	Numero = JSON.stringify(response);
+        console.log(Numero);
+	//callback(null, Numero);
+	//callback(e, null);
+	console.log ("catch");
+	//callback(Numero);
+	getVar(Numero);
+	return Numero;
+       }
+
+
+
+    //   if (error) throw new Error(error);
+      //      console.log(body);
+	//    data_to_parse = body;
+	  //  return data_to_parse;
+    });
 }
 
-if (response.context.short_desc_Json !== "" ){
-var short_desc_http = response.context.short_desc_Json;
-}
+//**********************************************************
+//*              Fonction updateMessage
+//**********************************************************
 
-	  //ouvre un ticket
-	  
-if ( response.context.incident_var === true ){
+function updateMessage(input, response, callback,Numero) {
+   console.log("Test");
+   var responseText = null;
+   if (!response.output) {
+      response.output = {};
+      console.log("Test if");
+      callback(response);
+   } else {
+      console.log("Test esle");
+      if (response.entities.length > 0){
+         console.log("test-moi");
+         console.log(response.entities[0].entity);
+      }
+      if (response.context.short_desc_Json !== "" ){
+         var short_desc_http = response.context.short_desc_Json;
+      }
 
+//---------------------
+//    ouvre un ticket
+//---------------------
+	// numéro
+	if (response.context.incident_ticket_number === true){
+	response.output.text[0] = "Voila le numéro : " + getVar(toto) + ". <br>N'hésitez pas si vous avez d'autres questions.";
+	response.context.incident_ticket_number = false;
+	return response;
+	
+	}    
+	
+	if (response.context.lien_incident === true){
+	var string_lien =getVar(toto);
+	var str_rplace = string_lien.replace(/\"/g, ""); 
+	console.log(typeof str_rplace + str_rplace);
+	response.output.text[0] = "Votre incident a été posté, vous pouvez le retrouver dans ce <a href=\"https://dev37615.service-now.com/nav_to.do?uri=incident.do?sysparm_query=number="+str_rplace+"\" target=\"_blank\" >lien</a>. <br>N'hésitez pas si vous avez d'autres questions.";
+	response.context.lien_incident = false;
+	return response;
 
-var options = {
- "method": "POST",
- "hostname": "dev37615.service-now.com",
- "port": null,
- "path": "/api/now/table/incident",
- "headers": {
-   "accept": "application/json",
-   "content-type": "application/json",
-   "authorization": "Basic YWRtaW46Z1VHcFdwS3pQcEV5",
-   "cache-control": "no-cache",
-   "postman-token": "9a16c542-1154-e7a1-efba-995554f65aa8"
- }
-};
-var http = require("https");
-var req = http.request(options, function (res) {
- var chunks = [];
-
- res.on("data", function (chunk) {
-   chunks.push(chunk);
- });
-
- res.on("end", function () {
-   var body = Buffer.concat(chunks);
-   console.log(body.toString());
- });
-});
-
-var urgency_var_Json = response.context.urgency_var ;
-
-/* var short_desc_http = response.context.short_desc_Json ; */
+	} 
  
 
 
-req.write(JSON.stringify({short_description : short_desc_http , urgency : urgency_var_Json }));
+
+ 
+      if ( response.context.incident_var === true ){
+         var num_incident ;
+         var data_to_parse;
+         var parsed_data;
+//------------------------------------------------
+         console.log("Création du ticket");
+	 var urgency_var_Json = response.context.urgency_var ;
+         getIncident(callback,null,urgency_var_Json, short_desc_http ,function (e,  Numero){
+	    //response.output.text = Numero;
+	    //callback(response);
+	    console.log(" Voila le numéro ! : " + Numero);
+	    return Numero;
+         });
+		
+console.log("voila la ligne ---------------");
+
+console.log("Entrée dans la zone commentaire");
+
+     var urgency_var_Json = response.context.urgency_var ;
+
+      console.log("test11");	
+      response.context.incident_var = false;
+      return response;
+   }
 
 
 
-/* req.write(JSON.stringify(data_to_send_json)); */
-req.end();
 
-	/* response.output.text = "Incident créé"; */
-	
-response.context.incident_var = false;
-  return response;
-	
-}
+
+
 	  // Description + Email outlook 2007 non utile 
 
-if(response.context.desc_first_msg_incident !== "" ){
+   if(response.context.desc_first_msg_incident !== "" ){
+      var desc_var_bis_Json = response.context.desc_first_msg_incident;
+   }
 
-	var desc_var_bis_Json = response.context.desc_first_msg_incident;
-}
-
-	  if(response.context.incident_var_bis === true){
-		  		
-	  
-var options = {
+   if(response.context.incident_var_bis === true){
+	
+      var body_to_parse;
+      var options = {
  "method": "POST",
  "hostname": "dev37615.service-now.com",
  "port": null,
@@ -157,21 +211,23 @@ var options = {
    "authorization": "Basic YWRtaW46Z1VHcFdwS3pQcEV5",
    "cache-control": "no-cache",
    "postman-token": "9a16c542-1154-e7a1-efba-995554f65aa8"
- }
-};
-var http = require("https");
-var req = http.request(options, function (res) {
- var chunks = [];
-
- res.on("data", function (chunk) {
-   chunks.push(chunk);
- });
-
- res.on("end", function () {
-   var body = Buffer.concat(chunks);
-   console.log(body.toString());
- });
-});
+           }
+      };
+      var http = require("https");
+      var req = http.request(options, function (res) {
+         var chunks = [];
+         res.on("data", function (chunk) {
+            chunks.push(chunk);
+         });
+         res.on("end", function () {
+            var body = Buffer.concat(chunks);
+	    console.log(typeof body + body);
+	    body_to_parse = JSON.parse(body);
+	    body_to_parse = body_to_parse.result.number;
+	    body_to_parse = JSON.stringify(body_to_parse);
+	    getVar(body_to_parse);
+         });
+      });
 
 // var desc_var_bis_Json = response.context.short_desc_Json_bis ;
 
@@ -179,88 +235,45 @@ var req = http.request(options, function (res) {
  
 
 
-req.write(JSON.stringify({short_description : desc_var_bis_Json, subcategory : 'Email Outlook 2007' }));
-
-
+      req.write(JSON.stringify({short_description : desc_var_bis_Json, subcategory : 'Email Outlook 2007' }));
 
 /* req.write(JSON.stringify(data_to_send_json)); */
-req.end();
+      req.end();
 
 	/* response.output.text = "Incident créé"; */
 
-response.context.incident_var_bis = false;
- desc_var_bis_Json = "";
+      response.context.incident_var_bis = false;
+      desc_var_bis_Json = "";
 	
-  return response;
-  	
-	  }
-	  
-	 
-	/*  
-	  	  // 2007 Email 
-	  if(response.context.incident_var_ter === true ){
-		  		
-	  
-var options = {
- "method": "POST",
- "hostname": "dev37615.service-now.com",
- "port": null,
- "path": "/api/now/table/incident",
- "headers": {
-   "accept": "application/json",
-   "content-type": "application/json",
-   "authorization": "Basic YWRtaW46Z1VHcFdwS3pQcEV5",
-   "cache-control": "no-cache",
-   "postman-token": "9a16c542-1154-e7a1-efba-995554f65aa8"
- }
-};
+      return response;
+   }
 
-var req = http.request(options, function (res) {
- var chunks = [];
+    if( response.context.numero_outlook_2007 === true){
+	response.output.text[0] = "Voila le numéro : " + getVar(toto) + ". <br>N'hésitez pas si vous avez d'autres questions.";
+	response.context.numero_outlook_2007 = false;
+	return response;
 
- res.on("data", function (chunk) {
-   chunks.push(chunk);
- });
+}
 
- res.on("end", function () {
-   var body = Buffer.concat(chunks);
-   console.log(body.toString());
- });
-});
+     if (response.context.lien_outlook_2007 === true){
+	var strg_lien =getVar(toto);
+	var str_replace = strg_lien.replace(/\"/g, ""); 
+	console.log(typeof str_replace + str_replace);
+	response.output.text[0] = "Votre incident a été posté, vous pouvez le retrouver dans ce <a href=\"https://dev37615.service-now.com/nav_to.do?uri=incident.do?sysparm_query=number="+str_replace+"\" target=\"_blank\" >lien</a>. <br>N'hésitez pas si vous avez d'autres questions.";
+	response.context.lien_outlook_2007 = false;
+	return response;
 
-
-// var short_desc_http = response.context.short_desc_Json ;
+	} 
  
 
-
-req.write(JSON.stringify({ subcategory : 'Email Outlook 2007' }));
-
-
-
-// req.write(JSON.stringify(data_to_send_json)); 
-req.end();
-
-	// response.output.text = "Incident créé"; 
-
-response.context.incident_var_ter = false;
-	
-  return response;
-  	
-	  }
-	  
-	  
-	  
-	  */
 	  
 	  
 	  // incident outlook 2010
 	  
 	  
 	  
- if(response.context.incident_var_quat === true){
-		  		
-	  
-var options = {
+   if(response.context.incident_var_quat === true){
+      var options = {
  "method": "POST",
  "hostname": "dev37615.service-now.com",
  "port": null,
@@ -271,20 +284,24 @@ var options = {
    "authorization": "Basic YWRtaW46Z1VHcFdwS3pQcEV5",
    "cache-control": "no-cache",
    "postman-token": "9a16c542-1154-e7a1-efba-995554f65aa8"
- }
-};
-var http = require("https");
-var req = http.request(options, function (res) {
- var chunks = [];
+            }
+   };
+   var http = require("https");
+   var req = http.request(options, function (res) {
+   var chunks = [];
 
- res.on("data", function (chunk) {
-   chunks.push(chunk);
- });
+   res.on("data", function (chunk) {
+      chunks.push(chunk);
+    });
 
- res.on("end", function () {
-   var body = Buffer.concat(chunks);
-   console.log(body.toString());
- });
+   res.on("end", function () {
+      var body = Buffer.concat(chunks);
+      console.log(body.toString());
+      var body_to_parse = JSON.parse(body);
+      body_to_parse = body_to_parse.result.number;
+      body_to_parse = JSON.stringify(body_to_parse);
+      getVar(body_to_parse);
+   });
 });
 
 
@@ -293,80 +310,38 @@ var req = http.request(options, function (res) {
  
 
 
-req.write(JSON.stringify({ short_description :  desc_var_bis_Json  , subcategory : 'Email Outlook 2010' }));
+   req.write(JSON.stringify({ short_description : desc_var_bis_Json  , subcategory : 'Email Outlook 2010' }));
 
 
 
 /* req.write(JSON.stringify(data_to_send_json)); */
-req.end();
+   req.end();
 
 	/* response.output.text = "Incident créé"; */
 
-response.context.incident_var_quat = false;
-	 desc_var_bis_Json = "";
-  return response;
-  	
-	  }
+   response.context.incident_var_quat = false;
+   desc_var_bis_Json = "";
+   return response;
+   }
 	  	  
 	  
-	  
-	  
-	  
-	  
-	  
- /*
-	  if(response.context.incident_var_quin === true ){
-		  		
-	  
-var options = {
- "method": "POST",
- "hostname": "dev37615.service-now.com",
- "port": null,
- "path": "/api/now/table/incident",
- "headers": {
-   "accept": "application/json",
-   "content-type": "application/json",
-   "authorization": "Basic YWRtaW46Z1VHcFdwS3pQcEV5",
-   "cache-control": "no-cache",
-   "postman-token": "9a16c542-1154-e7a1-efba-995554f65aa8"
- }
-};
+	if( response.context.numero_outlook_2010 === true){
+	response.output.text[0] = "Voila le numéro : " + getVar(toto) + ". <br>N'hésitez pas si vous avez d'autres questions.";
+	response.context.numero_outlook_2010 = false;
+	return response;
 
-var req = http.request(options, function (res) {
- var chunks = [];
+}
 
- res.on("data", function (chunk) {
-   chunks.push(chunk);
- });
+     if (response.context.lien_outlook_2010 === true){
+	var str_lien =getVar(toto);
+	var strg_replace = str_lien.replace(/\"/g, ""); 
+	console.log(typeof strg_replace + strg_replace);
+	response.output.text[0] = "Votre incident a été posté, vous pouvez le retrouver dans ce <a href=\"https://dev37615.service-now.com/nav_to.do?uri=incident.do?sysparm_query=number="+strg_replace+"\" target=\"_blank\" >lien</a>. <br>N'hésitez pas si vous avez d'autres questions.";
+	response.context.lien_outlook_2010 = false;
+	return response;
 
- res.on("end", function () {
-   var body = Buffer.concat(chunks);
-   console.log(body.toString());
- });
-}); 
-
-
-
-// var short_desc_http = response.context.short_desc_Json ; 
- 
-
-
-req.write(JSON.stringify({ subcategory : 'Email Outlook 2010' }));
-
-
-
-// req.write(JSON.stringify(data_to_send_json)); 
-req.end();
-
-	// response.output.text = "Incident créé"; 
-
-response.context.incident_var_quin = false;
-
-	
-  return response;
-  	
-	  }  */
-	  
+	}	  
+	  	  
 	  
 // -----------------------------------------------------------------------------------------------------------	  
 // incident partage réseau
@@ -376,8 +351,35 @@ response.context.incident_var_quin = false;
 if( response.context.$net_share !== ""){
 
 var path_net_share =  response.context.$net_share ;
+response.context.$net_share= '';
 
 }
+
+//------------------------------------------------
+
+	if( response.context.net_shar_num === true){
+	response.output.text[0] = "Voila le numéro : " + getVar(toto) + ". <br>N'hésitez pas si vous avez d'autres questions.";
+	response.context.net_shar_num = false;
+	return response;
+
+}
+
+     if (response.context.net_shar_lien === true){
+	var str_lien =getVar(toto);
+	var strg_replace = str_lien.replace(/\"/g, ""); 
+	console.log(typeof strg_replace + strg_replace);
+	response.output.text[0] = "Votre incident a été posté sous le numéro " + strg_replace + ", vous pouvez le retrouver dans ce <a href=\"https://dev37615.service-now.com/nav_to.do?uri=incident.do?sysparm_query=number="+strg_replace+"\" target=\"_blank\" >lien</a>. <br>N'hésitez pas si vous avez d'autres questions.";
+	response.context.net_shar_lien = false;
+	return response;
+
+	}
+
+
+
+
+
+
+//----------------------------------------------------
 
 if( response.context.incident_var_net_share === true){
 
@@ -407,10 +409,14 @@ var req = http.request(options, function (res) {
   res.on("end", function () {
     var body = Buffer.concat(chunks);
     console.log(body.toString());
+    var body_to_parse = JSON.parse(body);
+      body_to_parse = body_to_parse.result.number;
+      body_to_parse = JSON.stringify(body_to_parse);
+      getVar(body_to_parse);
   });
 });
 
-req.write(JSON.stringify({ short_description: response.context.$OS_vers + path_net_share,
+req.write(JSON.stringify({ short_description: ' :  ' + path_net_share,
   subcategory: 'net_share' }));
 req.end();
 
@@ -418,7 +424,7 @@ response.context.incident_var_net_share = "";
 path_net_share = "";
 response.context.$OS_ver ="";
 
-
+return response;
 }
 
 // Visio
@@ -436,7 +442,7 @@ var options = {
   "method": "POST",
   "hostname": "dev37615.service-now.com",
   "port": null,
-  "path": "/api/now/table/u_requested_bot_item",
+  "path": "/api/now/table/incident",
   "headers": {
     "accept": "application/json",
     "content-type": "application/json",
@@ -456,43 +462,61 @@ var req = http.request(options, function (res) {
   res.on("end", function () {
     var body = Buffer.concat(chunks);
     console.log(body.toString());
+    var body_to_parse = JSON.parse(body);
+    body_to_parse = body_to_parse.result.number;
+    body_to_parse = JSON.stringify(body_to_parse);
+    getVar(body_to_parse);
   });
 });
 
-req.write(JSON.stringify({ u_post_number: number_of_post, u_typeof_asset: 'MS Visio' }));
+req.write(JSON.stringify({ short_description: number_of_post +'  MS Visio' }));
 req.end();
 
 //response.context.os_v = "";
 response.context.$postnumber = "";
  response.context.request_var = false ; 
-
+return response;
 }
 
 
+   if (response.context.visio_lien === true){
+	var str_lien =getVar(toto);
+	var strg_replace = str_lien.replace(/\"/g, ""); 
+	console.log(typeof strg_replace + strg_replace);
+	response.output.text[0] = "Votre incident a été posté, vous pouvez le retrouver dans ce <a href=\"https://dev37615.service-now.com/nav_to.do?uri=incident.do?sysparm_query=number="+strg_replace+"\" target=\"_blank\" >lien</a>. <br>N'hésitez pas si vous avez d'autres questions.";
+	response.context.visio_lien = false;
+	return response;
+
+	}
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	  // aucune detection de outlook subcat
+	  // aucune detection, autre que archivage 
 	  var parsed_var;
 		var var_to_parse;
 		var numero;
+		var version_out;
+	if(response.context.version_out_context !== ''){
+	version_out = response.context.version_out_context;
+	response.context.version_out_context ='';
+}
+
+	if( response.context.numero_not_spec === true){
+	response.output.text[0] = "Voila le numéro : " + getVar(toto) + ". <br>N'hésitez pas si vous avez d'autres questions.";
+	response.context.numero_not_spec = false;
+	return response;
+
+}
+
+     if (response.context.lien_not_spec === true){
+	var str_lien =getVar(toto);
+	var strg_replace = str_lien.replace(/\"/g, ""); 
+	console.log(typeof strg_replace + strg_replace);
+	response.output.text[0] = "Votre incident a été posté, vous pouvez le retrouver dans ce <a href=\"https://dev37615.service-now.com/nav_to.do?uri=incident.do?sysparm_query=number="+strg_replace+"\" target=\"_blank\" >lien</a>. <br>N'hésitez pas si vous avez d'autres questions.";
+	response.context.lien_not_spec = false;
+	return response;
+
+	}
 	  
 	   if(response.context.incident_var_quin === true){
 		  		
@@ -522,92 +546,39 @@ var req = http.request(options, function (res) {
 
 
 	console.log("Test function hello");
-	var body = Buffer.concat(chunks);
-	//console.log(body.result.number.toString());
-	 var_to_parse = body;
-	console.log(typeof var_to_parse);
-
-	 parsed_var = JSON.parse(var_to_parse);
-	numero = parsed_var.result.number;
-	
-	
+	var body = Buffer.concat(chunks);	
 	console.log(body.toString());
-	console.log(numero);
-
-	
-
-
-
+   	var body_to_parse = JSON.parse(body);
+        body_to_parse = body_to_parse.result.number;
+        body_to_parse = JSON.stringify(body_to_parse);
+        getVar(body_to_parse);
 
 
-
- 
-
-
-
-
-
-
-
-
-// return var_to_parse
  ;});
 });
 
 
- // var short_desc_var_six_Json = response.context.short_desc_var_six ; 
- 
 
 
-req.write(JSON.stringify({ short_description: desc_var_bis_Json, subcategory : 'Email Other' }));
+req.write(JSON.stringify({ short_description: desc_var_bis_Json, subcategory : version_out }));
 
 
 
-/* req.write(JSON.stringify(data_to_send_json)); */
+
 req.end();
 
-	/* response.output.text = "Incident créé"; */
 
 response.context.incident_var_quin = false;
 desc_var_bis_Json = "";
 
-//console.log( typeof response);
 
-//parsed_var = stringify(parsed_var);
-
-//console.log(parsed_var);
-// sleep.sleep(8);
-//response.output.text = "Votre incident a été référencé dans SNOW sous :" + var_to_parse;
-
-// console.log( typeof response);
-//setTimeout(function(){req.end();},10000);
-//response.output.text = numero;
-console.log("trace1");
-//var blabla = 'toto';
-console.log("trace2");
-//response = blabla;
-console.log("trace3");
-  return response.output.text;
   	
 	  }
-	  
-	  
-	  
-	  
-	  
-	  
-	  
-	  
-	  
-	  
-	  
-	  
+	  	  
 	  
 }
-/*if(numero !== "" && typeof numero !== "undefined"){
-setTimeout(function(){ req.end();},10000);
-response.output.text = "Voila votre numéro d'incident : " + numero;
-} */
+
+
   return response;
 }
 module.exports = app;
